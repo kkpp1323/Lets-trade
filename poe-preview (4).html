@@ -1,0 +1,219 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 Tesla-Like Stock Trading Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ffdde1, #ee9ca7);
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            font-size: 28px;
+            color: #ff6b81;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 200, 221, 0.6);
+            border-radius: 10px;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .hud div {
+            padding: 10px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background: #ff6b81;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            background: #ff4757;
+            transform: scale(1.05);
+        }
+
+        .history {
+            margin-top: 20px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ff6b81;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>📈 Tesla-Like Stock Trading Game</h2>
+
+        <div class="hud">
+            <div>💰 Cash: <span id="cash">$10,000.00</span></div>
+            <div>📈 Stock Price: <span id="stockPrice">$100.00</span></div>
+            <div>📦 Stocks Owned: <span id="stocksOwned">0</span></div>
+            <div>📉 Shorted Stocks: <span id="shortedStocks">0</span></div>
+        </div>
+
+        <button onclick="buyStock()">🟢 Buy</button>
+        <button onclick="sellStock()">🔴 Sell</button>
+        <button onclick="shortSell()">📉 Short Sell</button>
+        <button onclick="coverShort()">🔁 Cover Short</button>
+
+        <h3>📜 Trade History</h3>
+        <div class="history" id="tradeHistory"></div>
+
+        <h3>📊 Stock Price Chart</h3>
+        <canvas id="stockChart"></canvas>
+    </div>
+
+    <script>
+        let cash = 10000, stocksOwned = 0, stockPrice = 100, shortedStocks = 0;
+        let buyHistory = [], shortHistory = [], stockData = [100], stockLabels = [new Date().toLocaleTimeString()];
+        let stockChart, time = 0, trend = 1;
+
+        function initializeChart() {
+            const ctx = document.getElementById("stockChart").getContext("2d");
+            stockChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: stockLabels,
+                    datasets: [{
+                        label: "Stock Price ($)",
+                        data: stockData,
+                        borderColor: "#ff6b81",
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: { responsive: true, scales: { x: { display: false }, y: { beginAtZero: false } } }
+            });
+
+            setInterval(updateStockPrice, 2000);
+        }
+
+        function updateStockPrice() {
+            time += 1;
+
+            let noise = (Math.random() - 0.5) * 5;  
+            let cycle = Math.sin(time / 10) * 3;    
+            let trendChange = Math.random() < 0.05 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+            let newsImpact = (Math.random() < 0.02) ? (Math.random() * 20 - 10) : 0;
+
+            trend += trendChange;
+            stockPrice += trend * cycle + noise + newsImpact;
+            stockPrice = Math.max(stockPrice, 10); 
+
+            stockLabels.push(new Date().toLocaleTimeString());
+            stockData.push(stockPrice);
+
+            if (stockLabels.length > 50) {
+                stockLabels.shift();
+                stockData.shift();
+            }
+
+            document.getElementById("stockPrice").innerText = `$${stockPrice.toFixed(2)}`;
+            stockChart.update();
+        }
+
+        function buyStock() {
+            if (cash >= stockPrice) {
+                stocksOwned++;
+                cash -= stockPrice;
+                buyHistory.push(stockPrice);
+                addTradeHistory(`🟢 Bought at $${stockPrice.toFixed(2)}`);
+                updateUI();
+            } else {
+                alert("Not enough cash to buy!");
+            }
+        }
+
+        function sellStock() {
+            if (stocksOwned > 0) {
+                let buyPrice = buyHistory.shift();
+                let profit = stockPrice - buyPrice;
+                stocksOwned--;
+                cash += stockPrice;
+                addTradeHistory(`🔴 Sold at $${stockPrice.toFixed(2)} (P/L: $${profit.toFixed(2)})`);
+                updateUI();
+            } else {
+                alert("No stocks to sell!");
+            }
+        }
+
+        function shortSell() {
+            shortedStocks++;
+            shortHistory.push(stockPrice);
+            cash += stockPrice;
+            addTradeHistory(`📉 Short Sold at $${stockPrice.toFixed(2)}`);
+            updateUI();
+        }
+
+        function coverShort() {
+            if (shortedStocks > 0) {
+                let shortPrice = shortHistory.shift();
+                let profit = shortPrice - stockPrice;
+                shortedStocks--;
+                cash -= stockPrice;
+                addTradeHistory(`🔁 Covered Short at $${stockPrice.toFixed(2)} (P/L: $${profit.toFixed(2)})`);
+                updateUI();
+            } else {
+                alert("No shorted stocks to cover!");
+            }
+        }
+
+        function addTradeHistory(entry) {
+            document.getElementById("tradeHistory").innerHTML = `<p>${new Date().toLocaleTimeString()} - ${entry}</p>` + document.getElementById("tradeHistory").innerHTML;
+        }
+
+        function updateUI() {
+            document.getElementById("cash").innerText = `$${cash.toFixed(2)}`;
+            document.getElementById("stocksOwned").innerText = stocksOwned;
+            document.getElementById("shortedStocks").innerText = shortedStocks;
+        }
+
+        window.onload = function () { initializeChart(); };
+    </script>
+
+
+
+</body></html>
